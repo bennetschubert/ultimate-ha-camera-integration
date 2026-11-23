@@ -1,0 +1,22 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Local S02000 Camera",
+        "description": "Connect to your cloud-free AK3918AV130 camera.",
+        "data": {
+          "name": "Camera Name",
+          "host": "IP Address / Hostname",
+          "http_port": "HTTP API Port",
+          "rtsp_port": "RTSP Port"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to http://<host>/api/status"
+    },
+    "abort": {
+      "already_configured": "This camera is already configured."
+    }
+  }
+}

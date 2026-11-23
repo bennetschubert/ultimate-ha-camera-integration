@@ -1,0 +1,11 @@
+{
+  "domain": "s02000_camera",
+  "name": "Local S02000 Camera",
+  "codeowners": ["@bennetschubert"],
+  "config_flow": true,
+  "documentation": "https://github.com/bennetschubert/ultimate-ha-camera-integration",
+  "issue_tracker": "https://github.com/bennetschubert/ultimate-ha-camera-integration/issues",
+  "iot_class": "local_polling",
+  "requirements": [],
+  "version": "1.0.0"
+}
