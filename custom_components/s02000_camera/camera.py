@@ -3,6 +3,11 @@
 from __future__ import annotations
 
 from homeassistant.components.camera import Camera, CameraEntityFeature
+
+try:
+    from homeassistant.components.camera import CameraEntityCapabilities
+except ImportError:  # Home Assistant < 2026.11
+    CameraEntityCapabilities = None  # type: ignore[assignment,misc]
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -34,6 +39,10 @@ class S02000Camera(CoordinatorEntity[S02000CameraCoordinator], Camera):
         self._attr_unique_id = f"{coordinator.entry.entry_id}_camera"
         self._attr_device_info = coordinator.device_info
         self.stream_options["rtsp_transport"] = "tcp"
+        if CameraEntityCapabilities is not None:
+            self._attr_camera_entity_capabilities = CameraEntityCapabilities(
+                two_way_audio=True
+            )
 
     async def stream_source(self) -> str:
         return self.coordinator.rtsp_url
