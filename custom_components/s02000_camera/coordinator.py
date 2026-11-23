@@ -139,6 +139,15 @@ class S02000CameraCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 resp.raise_for_status()
                 self.async_set_updated_data(await resp.json(content_type=None))
 
+    async def async_set_sound_sensitivity(self, sensitivity: int) -> None:
+        val = max(1, min(100, int(sensitivity)))
+        async with asyncio.timeout(5):
+            async with self._session.post(
+                f"{self.base_url}/api/audio/sound?sensitivity={val}"
+            ) as resp:
+                resp.raise_for_status()
+                self.async_set_updated_data(await resp.json(content_type=None))
+
     async def async_play_audio_url(self, media_url: str) -> None:
         """Transcode any audio/TTS URL to 8kHz 16-bit mono PCM via ffmpeg and play on camera."""
         proc = await asyncio.create_subprocess_exec(

@@ -25,6 +25,7 @@ async def async_setup_entry(
             S02000TiltNumber(coordinator),
             S02000StepSizeNumber(coordinator),
             S02000MotionSensitivityNumber(coordinator),
+            S02000SoundSensitivityNumber(coordinator),
         ]
     )
 
@@ -128,3 +129,29 @@ class S02000MotionSensitivityNumber(
 
     async def async_set_native_value(self, value: float) -> None:
         await self.coordinator.async_set_motion_sensitivity(int(value))
+
+
+class S02000SoundSensitivityNumber(
+    CoordinatorEntity[S02000CameraCoordinator], NumberEntity
+):
+    """On-camera sound / cry detection sensitivity (1-100)."""
+
+    _attr_has_entity_name = True
+    _attr_name = "Sound Sensitivity"
+    _attr_icon = "mdi:ear-hearing"
+    _attr_native_min_value = 1
+    _attr_native_max_value = 100
+    _attr_native_step = 5
+    _attr_mode = NumberMode.SLIDER
+
+    def __init__(self, coordinator: S02000CameraCoordinator) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.entry.entry_id}_sound_sensitivity"
+        self._attr_device_info = coordinator.device_info
+
+    @property
+    def native_value(self) -> float:
+        return float((self.coordinator.data or {}).get("sound_sensitivity", 50))
+
+    async def async_set_native_value(self, value: float) -> None:
+        await self.coordinator.async_set_sound_sensitivity(int(value))

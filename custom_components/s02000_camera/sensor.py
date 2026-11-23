@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import SensorEntity, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import PERCENTAGE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -18,7 +19,12 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     coordinator: S02000CameraCoordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([S02000IRStateSensor(coordinator)])
+    async_add_entities(
+        [
+            S02000IRStateSensor(coordinator),
+            S02000SoundLevelSensor(coordinator),
+        ]
+    )
 
 
 class S02000IRStateSensor(CoordinatorEntity[S02000CameraCoordinator], SensorEntity):
@@ -36,3 +42,22 @@ class S02000IRStateSensor(CoordinatorEntity[S02000CameraCoordinator], SensorEnti
     @property
     def native_value(self) -> str | None:
         return (self.coordinator.data or {}).get("night_state")
+
+
+class S02000SoundLevelSensor(CoordinatorEntity[S02000CameraCoordinator], SensorEntity):
+    """Live microphone noise level (0-100%)."""
+
+    _attr_has_entity_name = True
+    _attr_name = "Sound Level"
+    _attr_icon = "mdi:waveform"
+    _attr_native_unit_of_measurement = PERCENTAGE
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, coordinator: S02000CameraCoordinator) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.entry.entry_id}_sound_level"
+        self._attr_device_info = coordinator.device_info
+
+    @property
+    def native_value(self) -> int:
+        return int((self.coordinator.data or {}).get("sound_level", 0))
