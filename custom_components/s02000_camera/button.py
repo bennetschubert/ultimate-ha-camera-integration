@@ -29,7 +29,24 @@ async def async_setup_entry(
         S02000PTZButton(coordinator, d, name, icon) for d, name, icon in PTZ_BUTTONS
     ]
     entities.append(S02000CalibrateButton(coordinator))
+    entities.append(S02000BeepButton(coordinator))
     async_add_entities(entities)
+
+
+class S02000BeepButton(CoordinatorEntity[S02000CameraCoordinator], ButtonEntity):
+    """Play a short test/chime beep on the camera speaker."""
+
+    _attr_has_entity_name = True
+    _attr_name = "Speaker Beep"
+    _attr_icon = "mdi:bullhorn"
+
+    def __init__(self, coordinator: S02000CameraCoordinator) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.entry.entry_id}_speaker_beep"
+        self._attr_device_info = coordinator.device_info
+
+    async def async_press(self) -> None:
+        await self.coordinator.async_beep()
 
 
 class S02000CalibrateButton(CoordinatorEntity[S02000CameraCoordinator], ButtonEntity):

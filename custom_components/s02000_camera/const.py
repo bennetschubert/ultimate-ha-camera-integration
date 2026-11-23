@@ -23,4 +23,5 @@ PLATFORMS: list[Platform] = [
     Platform.SENSOR,
     Platform.BUTTON,
     Platform.NUMBER,
+    Platform.MEDIA_PLAYER,
 ]

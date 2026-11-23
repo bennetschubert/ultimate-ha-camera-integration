@@ -114,6 +114,48 @@ class S02000CameraCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 resp.raise_for_status()
                 self.async_set_updated_data(await resp.json(content_type=None))
 
+    async def async_beep(self, freq: int = 880, ms: int = 400) -> None:
+        async with asyncio.timeout(5):
+            async with self._session.post(
+                f"{self.base_url}/api/audio/beep?freq={freq}&ms={ms}"
+            ) as resp:
+                resp.raise_for_status()
+
+    async def async_play_audio_url(self, media_url: str) -> None:
+        """Transcode any audio/TTS URL to 8kHz 16-bit mono PCM via ffmpeg and play on camera."""
+        proc = await asyncio.create_subprocess_exec(
+            "ffmpeg",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-i",
+            media_url,
+            "-ar",
+            "8000",
+            "-ac",
+            "1",
+            "-f",
+            "s16le",
+            "pipe:1",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        pcm_data, stderr = await asyncio.wait_for(proc.communicate(), timeout=20)
+        if proc.returncode != 0 or not pcm_data:
+            raise RuntimeError(f"ffmpeg failed ({proc.returncode}): {stderr.decode(errors='replace')}")
+
+        # Camera HTTP endpoint accepts up to 256 KB (~16s of 8kHz mono PCM) per request; chunk if longer
+        chunk_size = 240000
+        for off in range(0, len(pcm_data), chunk_size):
+            chunk = pcm_data[off : off + chunk_size]
+            async with asyncio.timeout(25):
+                async with self._session.post(
+                    f"{self.base_url}/api/audio/play",
+                    data=chunk,
+                    headers={"Content-Type": "application/octet-stream"},
+                ) as resp:
+                    resp.raise_for_status()
+
     def pan_deg(self) -> float:
         data = self.data or {}
         pan = int(data.get("pan", 0))
