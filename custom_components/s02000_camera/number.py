@@ -24,6 +24,7 @@ async def async_setup_entry(
             S02000PanNumber(coordinator),
             S02000TiltNumber(coordinator),
             S02000StepSizeNumber(coordinator),
+            S02000MotionSensitivityNumber(coordinator),
         ]
     )
 
@@ -101,3 +102,29 @@ class S02000StepSizeNumber(CoordinatorEntity[S02000CameraCoordinator], NumberEnt
     async def async_set_native_value(self, value: float) -> None:
         self.coordinator.ptz_steps = int(value)
         self.async_write_ha_state()
+
+
+class S02000MotionSensitivityNumber(
+    CoordinatorEntity[S02000CameraCoordinator], NumberEntity
+):
+    """On-camera motion detection sensitivity (1-100)."""
+
+    _attr_has_entity_name = True
+    _attr_name = "Motion Sensitivity"
+    _attr_icon = "mdi:motion-sensor"
+    _attr_native_min_value = 1
+    _attr_native_max_value = 100
+    _attr_native_step = 5
+    _attr_mode = NumberMode.SLIDER
+
+    def __init__(self, coordinator: S02000CameraCoordinator) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.entry.entry_id}_motion_sensitivity"
+        self._attr_device_info = coordinator.device_info
+
+    @property
+    def native_value(self) -> float:
+        return float((self.coordinator.data or {}).get("motion_sensitivity", 50))
+
+    async def async_set_native_value(self, value: float) -> None:
+        await self.coordinator.async_set_motion_sensitivity(int(value))
