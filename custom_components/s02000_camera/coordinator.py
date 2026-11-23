@@ -101,10 +101,16 @@ class S02000CameraCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self.async_set_updated_data(await resp.json(content_type=None))
 
     async def async_set_tilt_deg(self, deg: float) -> None:
-        tilt_range = int((self.data or {}).get("tilt_range", 4096))
+        tilt_range = int((self.data or {}).get("tilt_range", 740))
         target = int(round((deg / TILT_MAX_DEG) * tilt_range))
         async with asyncio.timeout(5):
             async with self._session.post(f"{self.base_url}/api/ptz?tilt_abs={target}") as resp:
+                resp.raise_for_status()
+                self.async_set_updated_data(await resp.json(content_type=None))
+
+    async def async_calibrate(self) -> None:
+        async with asyncio.timeout(5):
+            async with self._session.post(f"{self.base_url}/api/ptz?calibrate=1") as resp:
                 resp.raise_for_status()
                 self.async_set_updated_data(await resp.json(content_type=None))
 
