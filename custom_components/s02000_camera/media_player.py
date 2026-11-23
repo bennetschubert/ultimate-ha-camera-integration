@@ -4,10 +4,13 @@ from __future__ import annotations
 
 from typing import Any
 
+from homeassistant.components import media_source
 from homeassistant.components.media_player import (
     MediaPlayerEntity,
     MediaPlayerEntityFeature,
     MediaPlayerState,
+)
+from homeassistant.components.media_player.browse_media import (
     async_process_play_media_url,
 )
 from homeassistant.config_entries import ConfigEntry
@@ -78,6 +81,11 @@ class S02000SpeakerMediaPlayer(
     async def async_play_media(
         self, media_type: str, media_id: str, **kwargs: Any
     ) -> None:
+        if media_source.is_media_source_id(media_id):
+            sourced = await media_source.async_resolve_media(
+                self.hass, media_id, self.entity_id
+            )
+            media_id = sourced.url
         url = async_process_play_media_url(self.hass, media_id)
         self._playing = True
         self.async_write_ha_state()

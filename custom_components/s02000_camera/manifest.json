@@ -7,5 +7,5 @@
   "issue_tracker": "https://github.com/bennetschubert/ultimate-ha-camera-integration/issues",
   "iot_class": "local_polling",
   "requirements": [],
-  "version": "1.5.0"
+  "version": "1.5.1"
 }
