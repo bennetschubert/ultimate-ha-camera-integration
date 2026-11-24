@@ -21,11 +21,11 @@ SERVICE_SHOW_PIP = "show_pip"
 SHOW_PIP_SCHEMA = vol.Schema(
     {
         vol.Required("pipup_url"): cv.string,
-        vol.Required("stream_url"): cv.string,
+        vol.Optional("stream_url", default=""): cv.string,
         vol.Optional("title", default="Baby Monitor"): cv.string,
-        vol.Optional("message", default="Alarm erkannt"): cv.string,
+        vol.Optional("message", default=""): cv.string,
         vol.Optional("duration", default=30): vol.All(
-            vol.Coerce(int), vol.Range(min=5, max=120)
+            vol.Coerce(int), vol.Range(min=1, max=14400)
         ),
         vol.Optional("position", default=0): vol.All(
             vol.Coerce(int), vol.Range(min=0, max=4)
@@ -53,24 +53,35 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         async def _handle_show_pip(call: ServiceCall) -> None:
             session = async_get_clientsession(hass)
-            payload = {
-                "duration": call.data["duration"],
-                "position": call.data["position"],
-                "title": call.data["title"],
-                "titleColor": "#ffffff",
-                "titleSize": 16,
-                "message": call.data["message"],
-                "messageColor": "#dddddd",
-                "messageSize": 12,
-                "backgroundColor": "#dd111111",
-                "media": {
-                    "web": {
-                        "uri": call.data["stream_url"],
-                        "width": call.data["width"],
-                        "height": call.data["height"],
-                    }
-                },
-            }
+            stream_url = call.data["stream_url"]
+            if stream_url:
+                payload = {
+                    "duration": call.data["duration"],
+                    "position": call.data["position"],
+                    "title": call.data["title"],
+                    "titleColor": "#ffffff",
+                    "titleSize": 16,
+                    "message": call.data["message"],
+                    "messageColor": "#dddddd",
+                    "messageSize": 12,
+                    "backgroundColor": "#dd111111",
+                    "media": {
+                        "web": {
+                            "uri": stream_url,
+                            "width": call.data["width"],
+                            "height": call.data["height"],
+                        }
+                    },
+                }
+            else:
+                # Dismiss / hide any active PiP overlay immediately
+                payload = {
+                    "duration": 1,
+                    "position": call.data["position"],
+                    "title": "",
+                    "message": "",
+                    "backgroundColor": "#00000000",
+                }
             try:
                 async with asyncio.timeout(5):
                     async with session.post(

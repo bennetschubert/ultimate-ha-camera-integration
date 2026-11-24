@@ -10,8 +10,8 @@ show_pip:
         text:
     stream_url:
       name: Stream Page URL
-      description: Camera /pip WebRTC player URL.
-      required: true
+      description: Camera /pip WebRTC player URL (leave empty to hide/dismiss the PiP overlay).
+      required: false
       selector:
         text:
     title:
@@ -21,7 +21,7 @@ show_pip:
         text:
     message:
       name: Message
-      default: "Alarm erkannt"
+      default: ""
       selector:
         text:
     duration:
@@ -29,8 +29,8 @@ show_pip:
       default: 30
       selector:
         number:
-          min: 5
-          max: 120
+          min: 1
+          max: 14400
     position:
       name: Position (0=TopRight, 1=TopLeft, 2=BottomRight, 3=BottomLeft, 4=Center)
       default: 0
