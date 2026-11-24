@@ -23,6 +23,7 @@ async def async_setup_entry(
         [
             S02000IRStateSensor(coordinator),
             S02000SoundLevelSensor(coordinator),
+            S02000BrightnessSensor(coordinator),
         ]
     )
 
@@ -61,3 +62,26 @@ class S02000SoundLevelSensor(CoordinatorEntity[S02000CameraCoordinator], SensorE
     @property
     def native_value(self) -> int:
         return int((self.coordinator.data or {}).get("sound_level", 0))
+
+
+class S02000BrightnessSensor(CoordinatorEntity[S02000CameraCoordinator], SensorEntity):
+    """Estimated ambient brightness (0-100%) derived from ISP auto-exposure."""
+
+    _attr_has_entity_name = True
+    _attr_name = "Brightness"
+    _attr_icon = "mdi:brightness-6"
+    _attr_native_unit_of_measurement = PERCENTAGE
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, coordinator: S02000CameraCoordinator) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.entry.entry_id}_brightness"
+        self._attr_device_info = coordinator.device_info
+
+    @property
+    def native_value(self) -> int:
+        return int((self.coordinator.data or {}).get("brightness", 0))
+
+    @property
+    def extra_state_attributes(self) -> dict[str, int]:
+        return {"exposure": int((self.coordinator.data or {}).get("exposure", 0))}
