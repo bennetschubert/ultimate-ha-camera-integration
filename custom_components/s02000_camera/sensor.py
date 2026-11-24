@@ -81,7 +81,3 @@ class S02000BrightnessSensor(CoordinatorEntity[S02000CameraCoordinator], SensorE
     @property
     def native_value(self) -> int:
         return int((self.coordinator.data or {}).get("brightness", 0))
-
-    @property
-    def extra_state_attributes(self) -> dict[str, int]:
-        return {"exposure": int((self.coordinator.data or {}).get("exposure", 0))}
