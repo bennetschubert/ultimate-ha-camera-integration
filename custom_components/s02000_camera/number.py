@@ -210,4 +210,4 @@ class S02000SpeakerVolumeNumber(
         return float((self.coordinator.data or {}).get("volume", 70))
 
     async def async_set_native_value(self, value: float) -> None:
-        await self.coordinator.async_set_volume(int(value))
+        await self.coordinator.async_set_volume(value / 100.0)
