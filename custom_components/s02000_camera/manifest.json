@@ -5,7 +5,7 @@
   "config_flow": true,
   "documentation": "https://github.com/bennetschubert/ultimate-ha-camera-integration",
   "issue_tracker": "https://github.com/bennetschubert/ultimate-ha-camera-integration/issues",
-  "iot_class": "local_polling",
+  "iot_class": "local_push",
   "requirements": [],
-  "version": "1.5.4"
+  "version": "1.6.0"
 }

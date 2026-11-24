@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import timedelta
+import json
 import logging
 from typing import Any
 
@@ -42,13 +43,68 @@ class S02000CameraCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.rtsp_port: int = entry.data.get(CONF_RTSP_PORT, DEFAULT_RTSP_PORT)
         self.ptz_steps: int = DEFAULT_PTZ_STEPS
         self._session = async_get_clientsession(hass)
+        self._sse_task: asyncio.Task[None] | None = None
 
         super().__init__(
             hass,
             _LOGGER,
             name=f"{DOMAIN}_{self.host}",
-            update_interval=timedelta(seconds=3),
+            # Live state arrives via SSE (/api/events); 60s poll is only a safety fallback
+            update_interval=timedelta(seconds=60),
         )
+
+    def async_start_sse(self) -> None:
+        """Start background Server-Sent Events listener for real-time local push."""
+        if self._sse_task is None or self._sse_task.done():
+            self._sse_task = self.entry.async_create_background_task(
+                self.hass,
+                self._async_sse_loop(),
+                f"{DOMAIN}_{self.host}_sse",
+            )
+
+    async def async_stop_sse(self) -> None:
+        """Cancel the SSE listener cleanly on unload."""
+        if self._sse_task is not None:
+            self._sse_task.cancel()
+            try:
+                await self._sse_task
+            except asyncio.CancelledError:
+                pass
+            self._sse_task = None
+
+    async def _async_sse_loop(self) -> None:
+        """Maintain a single persistent SSE stream to /api/events with auto-reconnect."""
+        timeout = aiohttp.ClientTimeout(total=None, sock_connect=5, sock_read=45)
+        while True:
+            try:
+                async with self._session.get(
+                    f"{self.base_url}/api/events",
+                    headers={"Accept": "text/event-stream"},
+                    timeout=timeout,
+                ) as resp:
+                    resp.raise_for_status()
+                    _LOGGER.debug("Connected to camera SSE stream at %s", self.host)
+                    async for raw_line in resp.content:
+                        line = raw_line.decode("utf-8", errors="ignore").strip()
+                        if not line or line.startswith(":"):
+                            continue
+                        if line.startswith("data:"):
+                            payload = line[5:].strip()
+                            try:
+                                data = json.loads(payload)
+                                if isinstance(data, dict):
+                                    self.async_set_updated_data(data)
+                            except ValueError:
+                                pass
+            except asyncio.CancelledError:
+                raise
+            except (aiohttp.ClientError, TimeoutError, OSError) as err:
+                _LOGGER.debug(
+                    "Camera SSE disconnected (%s), reconnecting in 3s: %s",
+                    self.host,
+                    err,
+                )
+            await asyncio.sleep(3)
 
     @property
     def base_url(self) -> str:
