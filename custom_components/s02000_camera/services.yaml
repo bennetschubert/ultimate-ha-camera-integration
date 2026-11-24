@@ -1,0 +1,54 @@
+show_pip:
+  name: Show TV PiP Overlay
+  description: Send a live WebRTC Picture-in-Picture overlay to PiPup on Fire TV / Android TV.
+  fields:
+    pipup_url:
+      name: PiPup URL
+      description: PiPup /notify endpoint (e.g. http://192.168.178.63:7979/notify).
+      required: true
+      selector:
+        text:
+    stream_url:
+      name: Stream Page URL
+      description: Camera /pip WebRTC player URL.
+      required: true
+      selector:
+        text:
+    title:
+      name: Title
+      default: "Baby Monitor"
+      selector:
+        text:
+    message:
+      name: Message
+      default: "Alarm erkannt"
+      selector:
+        text:
+    duration:
+      name: Duration (seconds)
+      default: 30
+      selector:
+        number:
+          min: 5
+          max: 120
+    position:
+      name: Position (0=TopRight, 1=TopLeft, 2=BottomRight, 3=BottomLeft, 4=Center)
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 4
+    width:
+      name: Width (px)
+      default: 480
+      selector:
+        number:
+          min: 160
+          max: 1280
+    height:
+      name: Height (px)
+      default: 270
+      selector:
+        number:
+          min: 90
+          max: 720
