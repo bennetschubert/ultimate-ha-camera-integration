@@ -27,6 +27,7 @@ async def async_setup_entry(
             S02000MotionSensitivityNumber(coordinator),
             S02000SoundSensitivityNumber(coordinator),
             S02000MicGainNumber(coordinator),
+            S02000SpeakerVolumeNumber(coordinator),
         ]
     )
 
@@ -183,3 +184,30 @@ class S02000MicGainNumber(
 
     async def async_set_native_value(self, value: float) -> None:
         await self.coordinator.async_set_mic_gain(int(value))
+
+
+class S02000SpeakerVolumeNumber(
+    CoordinatorEntity[S02000CameraCoordinator], NumberEntity
+):
+    """Camera speaker volume (0-100%)."""
+
+    _attr_has_entity_name = True
+    _attr_name = "Speaker Volume"
+    _attr_icon = "mdi:volume-high"
+    _attr_native_unit_of_measurement = "%"
+    _attr_native_min_value = 0
+    _attr_native_max_value = 100
+    _attr_native_step = 5
+    _attr_mode = NumberMode.SLIDER
+
+    def __init__(self, coordinator: S02000CameraCoordinator) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.entry.entry_id}_speaker_volume"
+        self._attr_device_info = coordinator.device_info
+
+    @property
+    def native_value(self) -> float:
+        return float((self.coordinator.data or {}).get("volume", 70))
+
+    async def async_set_native_value(self, value: float) -> None:
+        await self.coordinator.async_set_volume(int(value))
