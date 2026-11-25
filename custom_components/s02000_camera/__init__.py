@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
+from pathlib import Path
 
 import voluptuous as vol
 
@@ -18,6 +20,18 @@ from .coordinator import S02000CameraCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 SERVICE_SHOW_PIP = "show_pip"
+SERVICE_CLEANUP_RECORDINGS = "cleanup_recordings"
+CLEANUP_RECORDINGS_SCHEMA = vol.Schema(
+    {
+        vol.Optional("directory", default="/media/baby_clips"): cv.string,
+        vol.Optional("max_age_hours", default=24.0): vol.All(
+            vol.Coerce(float), vol.Range(min=0.1, max=720.0)
+        ),
+        vol.Optional("max_total_mb", default=2048): vol.All(
+            vol.Coerce(int), vol.Range(min=0, max=100000)
+        ),
+    }
+)
 SHOW_PIP_SCHEMA = vol.Schema(
     {
         vol.Required("pipup_url"): cv.string,
@@ -98,6 +112,83 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         hass.services.async_register(
             DOMAIN, SERVICE_SHOW_PIP, _handle_show_pip, schema=SHOW_PIP_SCHEMA
+        )
+
+    if not hass.services.has_service(DOMAIN, SERVICE_CLEANUP_RECORDINGS):
+
+        def _cleanup_dir(directory: str, max_age_hours: float, max_total_mb: int) -> None:
+            target = Path(directory).resolve()
+            media_root = Path("/media").resolve()
+            try:
+                target.relative_to(media_root)
+            except ValueError:
+                _LOGGER.warning(
+                    "Refusing to clean directory outside /media: %s", target
+                )
+                return
+            if not target.is_dir():
+                return
+
+            now = time.time()
+            cutoff = now - max_age_hours * 3600.0
+            deleted = 0
+            freed_bytes = 0
+            remaining: list[tuple[float, int, Path]] = []
+
+            for p in target.glob("*.mp4"):
+                if not p.is_file():
+                    continue
+                try:
+                    st = p.stat()
+                except OSError:
+                    continue
+                if st.st_mtime < cutoff:
+                    try:
+                        p.unlink()
+                        deleted += 1
+                        freed_bytes += st.st_size
+                    except OSError as err:
+                        _LOGGER.warning("Failed to delete %s: %s", p, err)
+                else:
+                    remaining.append((st.st_mtime, st.st_size, p))
+
+            if max_total_mb > 0 and remaining:
+                limit = max_total_mb * 1024 * 1024
+                total = sum(sz for _, sz, _ in remaining)
+                if total > limit:
+                    remaining.sort(key=lambda item: item[0])  # oldest first
+                    for _, sz, p in remaining:
+                        if total <= limit:
+                            break
+                        try:
+                            p.unlink()
+                            total -= sz
+                            deleted += 1
+                            freed_bytes += sz
+                        except OSError as err:
+                            _LOGGER.warning("Failed to delete %s: %s", p, err)
+
+            if deleted:
+                _LOGGER.info(
+                    "Cleaned up %d recording(s) (%.1f MB) in %s",
+                    deleted,
+                    freed_bytes / (1024 * 1024),
+                    target,
+                )
+
+        async def _handle_cleanup_recordings(call: ServiceCall) -> None:
+            await hass.async_add_executor_job(
+                _cleanup_dir,
+                call.data["directory"],
+                call.data["max_age_hours"],
+                call.data["max_total_mb"],
+            )
+
+        hass.services.async_register(
+            DOMAIN,
+            SERVICE_CLEANUP_RECORDINGS,
+            _handle_cleanup_recordings,
+            schema=CLEANUP_RECORDINGS_SCHEMA,
         )
 
     return True

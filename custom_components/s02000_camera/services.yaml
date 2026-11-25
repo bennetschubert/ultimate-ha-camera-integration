@@ -52,3 +52,30 @@ show_pip:
         number:
           min: 90
           max: 720
+
+cleanup_recordings:
+  name: Cleanup Old Recordings
+  description: Delete MP4 recordings older than max_age_hours (and enforce an optional total MB cap) inside /media.
+  fields:
+    directory:
+      name: Directory
+      description: Folder inside /media containing MP4 clips.
+      default: "/media/baby_clips"
+      selector:
+        text:
+    max_age_hours:
+      name: Max Age (hours)
+      description: Delete clips older than this many hours.
+      default: 24
+      selector:
+        number:
+          min: 1
+          max: 720
+    max_total_mb:
+      name: Max Total Size (MB)
+      description: Hard storage cap in MB (oldest clips deleted first; 0 = unlimited).
+      default: 2048
+      selector:
+        number:
+          min: 0
+          max: 100000
